@@ -206,6 +206,13 @@ def parse_kwb2(f, head_offset, body_offset, folder_name):
                 channels = read_u8(f, current_sub_offset + 0x03)
                 block_size = read_u16le(f, current_sub_offset + 0x04)
                 
+                # Check for samples_per_block and num_samples
+                # According to analysis:
+                # 0x06: samples_per_frame
+                # 0x0C: num_samples
+                samples_per_block = read_u16le(f, current_sub_offset + 0x06)
+                num_samples = read_u32le(f, current_sub_offset + 0x0C)
+
                 stream_rel_offset = read_u32le(f, current_sub_offset + 0x10)
                 stream_size = read_u32le(f, current_sub_offset + 0x14)
                 
@@ -226,6 +233,8 @@ def parse_kwb2(f, head_offset, body_offset, folder_name):
                     "sample_rate": sample_rate,
                     "channels": channels,
                     "block_size": block_size,
+                    "num_samples": num_samples,
+                    "samples_per_block": samples_per_block,
                     "original_stream_size": stream_size,
                     "codec": codec
                 }
@@ -238,7 +247,7 @@ def parse_kwb2(f, head_offset, body_offset, folder_name):
     return chunk_info
 
 if __name__ == "__main__":
-    file_name = "SOUND_035_EN_REPACK.xws"
+    file_name = "SOUND_035_EN.xws"
     if os.path.exists(file_name):
         parse_xws(file_name)
     else:

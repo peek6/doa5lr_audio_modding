@@ -122,7 +122,21 @@ def build_kwb_header_and_body(chunk_layout):
             entry_buffer.extend(struct.pack('<B', sub["channels"]))
             entry_buffer.extend(struct.pack('<H', sub["block_size"]))
             
-            entry_buffer.extend(b'\x00' * (0x10 - 0x06)) # Padding 0x06-0x0F
+            # 0x06: Samples per frame (or block)?
+            # kwb.c: "0x06: samples per frame in MSADPCM?"
+            # We can calculate it or pass it.
+            # MSADPCM samples per block = sub["samples_per_block"]
+            samples_per_block = sub.get("samples_per_block", 0)
+            entry_buffer.extend(struct.pack('<H', samples_per_block))
+            
+            # 0x08: ID?
+            entry_buffer.extend(b'\x00' * 4)
+            
+            # 0x0C: Num Samples
+            num_samples = sub.get("num_samples", 0)
+            entry_buffer.extend(struct.pack('<I', num_samples))
+            
+            # entry_buffer.extend(b'\x00' * (0x10 - 0x06)) # Padding 0x06-0x0F -> Removed
             
             entry_buffer.extend(struct.pack('<I', current_stream_offset))
             entry_buffer.extend(struct.pack('<I', current_stream_size))
@@ -170,16 +184,8 @@ def repack(layout_path, output_path):
     
     with open(output_path, 'wb') as f:
         # XWS Header
-        # 0x00 Magic "XWSF"
-        f.write(b'XWSF')
-        # 0x04 Version? 0x01010000 (BE)?
-        # kwb.c: "0a: version? (0100: NG2... 0101: DoA LR PC)"
-        # XWSF is 4 bytes. 0x04-0x07 is 0?
-        # kwb.c: `kwb->big_endian = read_u8(offset + 0x08, sf) == 0xFF;`
-        # 0x08-0x0B
-        # Let's try to infer from typical.
-        # Let's write 0 for 0x04-0x07.
-        f.write(b'\x00\x00\x00\x00')
+        # 0x00 Magic "XWSFILE\0"
+        f.write(b'XWSFILE\x00')
         
         # 0x08: Endianness (0xFF = BE, else LE)
         # Windows/PC is usually LE. So 0x00.
